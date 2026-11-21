@@ -17,25 +17,39 @@ export const ThreeHeartCanvas: React.FC<ThreeHeartCanvasProps> = ({ recipientNam
   // References for scene manipulation
   const heartMeshRef = useRef<THREE.Mesh | null>(null);
   const heartMaterialRef = useRef<THREE.MeshPhysicalMaterial | null>(null);
+  const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
 
   useEffect(() => {
     const container = mountRef.current;
     if (!container) return;
 
-    // 1. Scene & Camera Setup
+    // 1. Scene & Camera Setup with Dynamic Responsive Distance
     const scene = new THREE.Scene();
-    scene.fog = new THREE.FogExp2(0x090514, 0.035);
+    scene.fog = new THREE.FogExp2(0x090514, 0.032);
 
+    const getCameraDistance = (width: number) => {
+      if (width < 480) return 15.5;
+      if (width < 768) return 13.5;
+      if (width < 1024) return 12.0;
+      return 11.0;
+    };
+
+    const initialDistance = getCameraDistance(container.clientWidth);
     const camera = new THREE.PerspectiveCamera(
       45,
       container.clientWidth / container.clientHeight,
       0.1,
       100
     );
-    camera.position.set(0, 0, 11);
+    camera.position.set(0, 0, initialDistance);
+    cameraRef.current = camera;
 
     // 2. WebGL Renderer
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
+    const renderer = new THREE.WebGLRenderer({
+      antialias: true,
+      alpha: true,
+      powerPreference: 'high-performance',
+    });
     renderer.setSize(container.clientWidth, container.clientHeight);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -68,7 +82,7 @@ export const ThreeHeartCanvas: React.FC<ThreeHeartCanvasProps> = ({ recipientNam
       metalness: 0.1,
       clearcoat: 1.0,
       clearcoatRoughness: 0.1,
-      transmission: 0.45, // Glass crystal feel
+      transmission: 0.45,
       thickness: 1.8,
       ior: 1.52,
       sheen: 0.8,
@@ -77,7 +91,7 @@ export const ThreeHeartCanvas: React.FC<ThreeHeartCanvasProps> = ({ recipientNam
     heartMaterialRef.current = heartMaterial;
 
     const heartMesh = new THREE.Mesh(heartGeometry, heartMaterial);
-    heartMesh.rotation.z = Math.PI; // Flip right side up
+    heartMesh.rotation.z = Math.PI; // Right side up
     scene.add(heartMesh);
     heartMeshRef.current = heartMesh;
 
@@ -116,11 +130,11 @@ export const ThreeHeartCanvas: React.FC<ThreeHeartCanvasProps> = ({ recipientNam
     const starColors = new Float32Array(starCount * 3);
 
     const colorPalette = [
-      new THREE.Color(0xff85a1), // Pink
-      new THREE.Color(0xffc2d1), // Soft rose
-      new THREE.Color(0xffe5ec), // Starlight white
-      new THREE.Color(0xffd166), // Gold
-      new THREE.Color(0xc77dff), // Violet nebula
+      new THREE.Color(0xff85a1),
+      new THREE.Color(0xffc2d1),
+      new THREE.Color(0xffe5ec),
+      new THREE.Color(0xffd166),
+      new THREE.Color(0xc77dff),
     ];
 
     for (let i = 0; i < starCount; i++) {
@@ -151,7 +165,7 @@ export const ThreeHeartCanvas: React.FC<ThreeHeartCanvasProps> = ({ recipientNam
     const starPoints = new THREE.Points(starGeometry, starMaterial);
     scene.add(starPoints);
 
-    // 7. Interactive Click Exploding Shards/Hearts
+    // 7. Interactive Exploding Hearts Burst
     interface ParticleShard {
       mesh: THREE.Mesh;
       vel: THREE.Vector3;
@@ -165,7 +179,6 @@ export const ThreeHeartCanvas: React.FC<ThreeHeartCanvasProps> = ({ recipientNam
     const spawnBurst = (x: number, y: number) => {
       soundEngine.playSparkle();
 
-      // Confetti burst on screen
       confetti({
         particleCount: 45,
         spread: 70,
@@ -173,7 +186,6 @@ export const ThreeHeartCanvas: React.FC<ThreeHeartCanvasProps> = ({ recipientNam
         colors: ['#ff1e56', '#ff70a6', '#ffd166', '#ffffff', '#e0aaff'],
       });
 
-      // 3D shards burst
       for (let i = 0; i < 24; i++) {
         const mat = new THREE.MeshBasicMaterial({
           color: Math.random() > 0.4 ? 0xff4d6d : 0xffd166,
@@ -206,20 +218,38 @@ export const ThreeHeartCanvas: React.FC<ThreeHeartCanvasProps> = ({ recipientNam
       setPulseCount((c) => c + 1);
     };
 
-    // 8. Mouse / Gyro Parallax tracking
+    // 8. Responsive Mouse & Touch Gestures
     let targetRotX = 0;
     let targetRotY = 0;
 
-    const handlePointerMove = (e: MouseEvent | TouchEvent) => {
-      const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
-      const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
-
+    const handlePointerMove = (e: MouseEvent) => {
       const rect = container.getBoundingClientRect();
-      const x = ((clientX - rect.left) / rect.width) * 2 - 1;
-      const y = -(((clientY - rect.top) / rect.height) * 2 - 1);
-
+      const x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+      const y = -(((e.clientY - rect.top) / rect.height) * 2 - 1);
       targetRotY = x * 0.6;
       targetRotX = -y * 0.4;
+    };
+
+    // Mobile touch drag interaction
+    let touchStartX = 0;
+    let touchStartY = 0;
+
+    const handleTouchStart = (e: TouchEvent) => {
+      if (e.touches.length > 0) {
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
+      }
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (e.touches.length > 0) {
+        const deltaX = (e.touches[0].clientX - touchStartX) * 0.01;
+        const deltaY = (e.touches[0].clientY - touchStartY) * 0.01;
+        targetRotY += deltaX;
+        targetRotX -= deltaY;
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
+      }
     };
 
     const handlePointerDown = () => {
@@ -227,14 +257,17 @@ export const ThreeHeartCanvas: React.FC<ThreeHeartCanvasProps> = ({ recipientNam
     };
 
     window.addEventListener('mousemove', handlePointerMove);
+    container.addEventListener('touchstart', handleTouchStart, { passive: true });
+    container.addEventListener('touchmove', handleTouchMove, { passive: true });
     container.addEventListener('click', handlePointerDown);
 
-    // 9. Resize Handler
+    // 9. Resize Handler with Responsive Camera Adaptation
     const handleResize = () => {
       if (!container) return;
       const width = container.clientWidth;
       const height = container.clientHeight;
       camera.aspect = width / height;
+      camera.position.z = getCameraDistance(width);
       camera.updateProjectionMatrix();
       renderer.setSize(width, height);
     };
@@ -248,8 +281,7 @@ export const ThreeHeartCanvas: React.FC<ThreeHeartCanvasProps> = ({ recipientNam
       animationFrameId = requestAnimationFrame(animate);
       const elapsedTime = clock.getElapsedTime();
 
-      // Realistic double heartbeat pulse rhythm (lub-dub)
-      // High-frequency heart pulse
+      // Double heartbeat pulse rhythm (lub-dub)
       const t = (elapsedTime * 1.5) % 1;
       let heartPulse = 0;
       if (t < 0.15) {
@@ -261,12 +293,12 @@ export const ThreeHeartCanvas: React.FC<ThreeHeartCanvasProps> = ({ recipientNam
       const baseScale = 1.0 + heartPulse;
       heartMesh.scale.set(baseScale, baseScale, baseScale);
 
-      // Smooth rotation with mouse parallax
+      // Smooth rotation with parallax damping
       heartMesh.rotation.y += (targetRotY + Math.sin(elapsedTime * 0.8) * 0.25 - heartMesh.rotation.y) * 0.05;
       heartMesh.rotation.x += (Math.PI + targetRotX + Math.cos(elapsedTime * 0.6) * 0.15 - heartMesh.rotation.x) * 0.05;
 
       // Gentle floating bob
-      heartMesh.position.y = Math.sin(elapsedTime * 1.2) * 0.2;
+      heartMesh.position.y = Math.sin(elapsedTime * 1.2) * 0.18;
 
       // Rotate starlight ring & cosmos
       ringGroup.rotation.y += 0.005;
@@ -304,11 +336,12 @@ export const ThreeHeartCanvas: React.FC<ThreeHeartCanvasProps> = ({ recipientNam
 
     return () => {
       window.removeEventListener('mousemove', handlePointerMove);
+      container.removeEventListener('touchstart', handleTouchStart);
+      container.removeEventListener('touchmove', handleTouchMove);
       container.removeEventListener('click', handlePointerDown);
       window.removeEventListener('resize', handleResize);
       cancelAnimationFrame(animationFrameId);
 
-      // Dispose Three.js objects
       heartGeometry.dispose();
       heartMaterial.dispose();
       ringGeometry.dispose();
@@ -322,7 +355,6 @@ export const ThreeHeartCanvas: React.FC<ThreeHeartCanvasProps> = ({ recipientNam
     };
   }, []);
 
-  // Change heart material mood (Ruby, Crystal Diamond, Pure Gold)
   const setMood = (mood: 'ruby' | 'crystal' | 'gold') => {
     setActiveMood(mood);
     soundEngine.playSparkle();
@@ -347,76 +379,75 @@ export const ThreeHeartCanvas: React.FC<ThreeHeartCanvasProps> = ({ recipientNam
   };
 
   return (
-    <div className="relative w-full h-[620px] md:h-[700px] flex items-center justify-center overflow-hidden rounded-3xl border border-rose-500/20 bg-gradient-to-b from-[#140826]/60 via-[#0a0316]/90 to-[#07020d]">
+    <div className="relative w-full h-[540px] sm:h-[620px] md:h-[680px] lg:h-[720px] flex items-center justify-center overflow-hidden rounded-3xl border border-rose-500/20 bg-gradient-to-b from-[#140826]/60 via-[#0a0316]/90 to-[#07020d]">
       {/* Three.js canvas container */}
-      <div ref={mountRef} className="absolute inset-0 cursor-pointer" />
+      <div ref={mountRef} className="absolute inset-0 cursor-pointer touch-none" />
 
       {/* Floating subtle ambient glow */}
-      <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-96 h-96 bg-rose-500/20 rounded-full blur-[120px] pointer-events-none" />
-      <div className="absolute -bottom-32 left-1/2 -translate-x-1/2 w-96 h-96 bg-purple-600/20 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute -top-32 left-1/2 -translate-x-1/2 w-80 sm:w-96 h-80 sm:h-96 bg-rose-500/20 rounded-full blur-[100px] sm:blur-[120px] pointer-events-none" />
+      <div className="absolute -bottom-32 left-1/2 -translate-x-1/2 w-80 sm:w-96 h-80 sm:h-96 bg-purple-600/20 rounded-full blur-[100px] sm:blur-[120px] pointer-events-none" />
 
-      {/* Floating Glassmorphism Hero Badge (Top) */}
-      <div className="absolute top-6 left-1/2 -translate-x-1/2 z-10 text-center pointer-events-none px-4">
-        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-rose-950/40 backdrop-blur-md border border-rose-500/30 shadow-lg shadow-rose-950/40 text-xs sm:text-sm font-medium text-rose-200">
-          <Sparkles className="w-4 h-4 text-amber-300 animate-pulse" />
-          <span>Crafted with infinite love for {recipientName}</span>
-          <Heart className="w-3.5 h-3.5 text-rose-400 fill-rose-400 animate-ping" />
+      {/* Floating Glassmorphism Hero Badge (Top) - Responsive */}
+      <div className="absolute top-4 sm:top-6 left-1/2 -translate-x-1/2 z-10 text-center pointer-events-none px-3 w-full max-w-xl">
+        <div className="inline-flex items-center gap-1.5 sm:gap-2 px-3 py-1 sm:px-4 sm:py-1.5 rounded-full bg-rose-950/50 backdrop-blur-md border border-rose-500/30 shadow-lg text-[11px] sm:text-xs md:text-sm font-medium text-rose-200">
+          <Sparkles className="w-3.5 h-3.5 text-amber-300 animate-pulse" />
+          <span className="truncate max-w-[200px] sm:max-w-none">Crafted for {recipientName}</span>
+          <Heart className="w-3 h-3 text-rose-400 fill-rose-400 animate-ping" />
         </div>
-        <h1 className="mt-3 text-3xl sm:text-5xl md:text-6xl font-serif font-bold text-transparent bg-clip-text bg-gradient-to-r from-rose-200 via-pink-100 to-amber-200 drop-shadow-md">
+        <h1 className="mt-2 text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-serif font-bold text-transparent bg-clip-text bg-gradient-to-r from-rose-200 via-pink-100 to-amber-200 drop-shadow-md leading-tight">
           My Whole Universe
         </h1>
-        <p className="text-xs sm:text-sm text-rose-300/80 font-light mt-1 tracking-wide">
-          Move your cursor to orbit • Click the 3D heart to send love
+        <p className="text-[11px] sm:text-xs md:text-sm text-rose-300/80 font-light mt-0.5 sm:mt-1 tracking-wide">
+          Swipe or move cursor to orbit • Tap the 3D heart to send love
         </p>
       </div>
 
-      {/* Floating Interactive Controls (Bottom) */}
-      <div className="absolute bottom-6 inset-x-4 md:inset-x-8 z-10 flex flex-wrap items-center justify-between gap-3 pointer-events-auto">
+      {/* Floating Interactive Controls (Bottom) - Fully Responsive */}
+      <div className="absolute bottom-3 sm:bottom-6 inset-x-3 sm:inset-x-6 md:inset-x-8 z-10 flex flex-col sm:flex-row items-center justify-between gap-2.5 sm:gap-3 pointer-events-auto">
         {/* Heart beats counter */}
-        <div className="flex items-center gap-2.5 px-4 py-2 rounded-2xl bg-black/40 backdrop-blur-md border border-rose-500/20 text-xs text-rose-200 shadow-xl">
-          <span className="relative flex h-3 w-3">
+        <div className="flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-2xl bg-black/50 backdrop-blur-md border border-rose-500/20 text-xs text-rose-200 shadow-xl">
+          <span className="relative flex h-2.5 w-2.5">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-3 w-3 bg-rose-500"></span>
+            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500"></span>
           </span>
           <span className="font-semibold text-rose-100">{pulseCount}</span>
-          <span className="text-rose-300/70">Love Bursts Sent</span>
+          <span className="text-rose-300/70 text-[11px] sm:text-xs">Love Bursts Sent</span>
         </div>
 
-        {/* Crystalline Material Switcher */}
-        <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-black/40 backdrop-blur-md border border-rose-500/20 text-xs">
-          <span className="text-rose-300/60 pl-2 pr-1 font-medium hidden sm:inline">Theme:</span>
+        {/* Center: Crystalline Material Switcher */}
+        <div className="flex items-center gap-1 p-1 rounded-2xl bg-black/50 backdrop-blur-md border border-rose-500/20 text-xs">
           <button
             onClick={() => setMood('ruby')}
-            className={`px-3 py-1.5 rounded-xl transition-all duration-300 flex items-center gap-1.5 ${
+            className={`px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl transition-all duration-300 flex items-center gap-1.5 text-[11px] sm:text-xs ${
               activeMood === 'ruby'
                 ? 'bg-gradient-to-r from-rose-600 to-pink-600 text-white shadow-md shadow-rose-900/50'
                 : 'text-rose-300/80 hover:text-white hover:bg-white/5'
             }`}
           >
-            <div className="w-2.5 h-2.5 rounded-full bg-rose-400" />
-            <span>Ruby Love</span>
+            <div className="w-2 h-2 rounded-full bg-rose-400" />
+            <span>Ruby</span>
           </button>
           <button
             onClick={() => setMood('crystal')}
-            className={`px-3 py-1.5 rounded-xl transition-all duration-300 flex items-center gap-1.5 ${
+            className={`px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl transition-all duration-300 flex items-center gap-1.5 text-[11px] sm:text-xs ${
               activeMood === 'crystal'
                 ? 'bg-gradient-to-r from-pink-300/40 to-purple-300/40 text-white border border-pink-300/50 shadow-md'
                 : 'text-rose-300/80 hover:text-white hover:bg-white/5'
             }`}
           >
-            <div className="w-2.5 h-2.5 rounded-full bg-pink-200" />
-            <span>Pink Diamond</span>
+            <div className="w-2 h-2 rounded-full bg-pink-200" />
+            <span>Diamond</span>
           </button>
           <button
             onClick={() => setMood('gold')}
-            className={`px-3 py-1.5 rounded-xl transition-all duration-300 flex items-center gap-1.5 ${
+            className={`px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl transition-all duration-300 flex items-center gap-1.5 text-[11px] sm:text-xs ${
               activeMood === 'gold'
                 ? 'bg-gradient-to-r from-amber-500 to-yellow-600 text-amber-950 font-semibold shadow-md shadow-amber-900/50'
                 : 'text-rose-300/80 hover:text-white hover:bg-white/5'
             }`}
           >
-            <div className="w-2.5 h-2.5 rounded-full bg-amber-400" />
-            <span>Golden Glow</span>
+            <div className="w-2 h-2 rounded-full bg-amber-400" />
+            <span>Gold</span>
           </button>
         </div>
 
@@ -426,17 +457,17 @@ export const ThreeHeartCanvas: React.FC<ThreeHeartCanvasProps> = ({ recipientNam
             if (heartMeshRef.current) {
               soundEngine.playSparkle();
               confetti({
-                particleCount: 60,
-                spread: 100,
+                particleCount: 50,
+                spread: 90,
                 origin: { y: 0.6 },
                 colors: ['#ff1e56', '#ffd166', '#ff85a1', '#f72585'],
               });
               setPulseCount((c) => c + 5);
             }
           }}
-          className="px-4 py-2 rounded-2xl bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-400 hover:to-pink-400 text-white text-xs sm:text-sm font-semibold shadow-lg shadow-rose-600/30 transition-all duration-300 hover:scale-105 active:scale-95 flex items-center gap-2"
+          className="w-full sm:w-auto px-4 py-1.5 sm:py-2 rounded-2xl bg-gradient-to-r from-rose-500 to-pink-500 hover:from-rose-400 hover:to-pink-400 text-white text-xs sm:text-sm font-semibold shadow-lg shadow-rose-600/30 transition-all duration-300 hover:scale-105 active:scale-95 flex items-center justify-center gap-2"
         >
-          <Wand2 className="w-4 h-4" />
+          <Wand2 className="w-3.5 h-3.5" />
           <span>Send Love Sparkles ✨</span>
         </button>
       </div>

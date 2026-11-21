@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { Navbar } from './components/Navbar';
 import { ThreeHeartCanvas } from './components/ThreeHeartCanvas';
-import { TogetherCounter } from './components/TogetherCounter';
+import { RomanticMusicPlayer } from './components/RomanticMusicPlayer';
+import { EnchantedRose3D } from './components/EnchantedRose3D';
 import { LoveLetter3D } from './components/LoveLetter3D';
 import { MemoryCarousel3D } from './components/MemoryCarousel3D';
 import { LoveJar } from './components/LoveJar';
-import { DateNightWheel } from './components/DateNightWheel';
+import { LoveCoupons3D } from './components/LoveCoupons3D';
 import { CustomizerModal } from './components/CustomizerModal';
 import type { RomanticConfig } from './types';
 import { soundEngine } from './utils/audio';
@@ -78,20 +79,22 @@ export default function App() {
       />
 
       <main className="flex-1 w-full max-w-6xl mx-auto px-4 sm:px-6 py-6 sm:py-10 space-y-16">
-        {/* 1. Main 3D Three.js Hero Canvas */}
+        {/* 1. Main 3D Three.js Hero Canvas (Fully Responsive) */}
         <section>
           <ThreeHeartCanvas recipientName={config.recipientName} />
         </section>
 
-        {/* 2. Days Together Live Counter */}
+        {/* 2. Romantic English Love Songs & 3D Vinyl Player */}
         <section>
-          <TogetherCounter
-            startDateStr={config.startDate}
-            recipientName={config.recipientName}
-          />
+          <RomanticMusicPlayer recipientName={config.recipientName} />
         </section>
 
-        {/* 3. 3D Origami Love Letter with Wax Seal */}
+        {/* 3. 3D Enchanted Eternal Rose with Secret Petal Notes */}
+        <section>
+          <EnchantedRose3D recipientName={config.recipientName} />
+        </section>
+
+        {/* 4. 3D Origami Love Letter with Wax Seal */}
         <section>
           <LoveLetter3D
             recipientName={config.recipientName}
@@ -101,19 +104,19 @@ export default function App() {
           />
         </section>
 
-        {/* 4. 3D Memory Card Carousel */}
+        {/* 5. 3D Memory Card Carousel */}
         <section>
           <MemoryCarousel3D />
         </section>
 
-        {/* 5. Jar of Love Notes & Compliments */}
+        {/* 6. Jar of Love Notes & Compliments */}
         <section>
           <LoveJar recipientName={config.recipientName} />
         </section>
 
-        {/* 6. Date Night Wheel & Playful Date Proposal */}
+        {/* 7. 3D Love Coupons & Redeemable Vouchers */}
         <section>
-          <DateNightWheel recipientName={config.recipientName} />
+          <LoveCoupons3D recipientName={config.recipientName} />
         </section>
       </main>
 

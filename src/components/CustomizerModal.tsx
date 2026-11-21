@@ -32,7 +32,6 @@ export const CustomizerModal: React.FC<CustomizerModalProps> = ({
     const params = new URLSearchParams();
     params.set('her', formData.recipientName);
     params.set('me', formData.senderName);
-    params.set('since', formData.startDate);
     const fullUrl = `${window.location.origin}${window.location.pathname}#${params.toString()}`;
 
     navigator.clipboard.writeText(fullUrl);
@@ -58,7 +57,7 @@ export const CustomizerModal: React.FC<CustomizerModalProps> = ({
           Make It Truly Yours 💖
         </h3>
         <p className="text-xs text-rose-300/70 mt-1 mb-6">
-          Customize the names, relationship anniversary, and sweet love note.
+          Customize the names and sweet love letter.
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -86,18 +85,6 @@ export const CustomizerModal: React.FC<CustomizerModalProps> = ({
               value={formData.senderName}
               onChange={(e) => setFormData({ ...formData, senderName: e.target.value })}
               placeholder="e.g. Forever Yours, Alex"
-              className="w-full text-sm px-4 py-2.5 rounded-xl bg-black/40 border border-rose-500/30 text-rose-100 focus:outline-none focus:border-rose-400"
-            />
-          </div>
-
-          <div>
-            <label className="text-xs text-rose-200 font-medium block mb-1.5">
-              Anniversary / Day You Met (for the Live Counter)
-            </label>
-            <input
-              type="date"
-              value={formData.startDate}
-              onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
               className="w-full text-sm px-4 py-2.5 rounded-xl bg-black/40 border border-rose-500/30 text-rose-100 focus:outline-none focus:border-rose-400"
             />
           </div>
